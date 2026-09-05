@@ -2,6 +2,8 @@ import { Router } from "express";
 import userRouter from "./routes/user-routes.js";
 import healthRouter from "./routes/health-routes.js";
 import authRouter from "./routes/auth-routes.js";
+import bookRouter from "./routes/book-routes.js";
+import categoryRouter from "./routes/category-routes.js";
 
 const router: Router = Router();
 
@@ -10,9 +12,10 @@ const v1Routes: Router = Router();
 v1Routes.use("/health", healthRouter);
 v1Routes.use("/user", userRouter);
 v1Routes.use("/auth", authRouter);
+v1Routes.use("/book", bookRouter);
+v1Routes.use("/category", categoryRouter);
 
 // attach v1 routes
 router.use("/api/v1", v1Routes);
 
 export default router;
-    

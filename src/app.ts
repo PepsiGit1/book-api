@@ -13,6 +13,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // create express app instance
 const app = express();
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(
+    "/uploads",
+    express.static(path.join(process.cwd(), "uploads")),
+);
+
 // Security middleware
 app.use(HelmetMiddleware);
 
