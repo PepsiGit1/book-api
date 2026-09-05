@@ -1,0 +1,45 @@
+generator client {
+    provider = "prisma-client-js"
+}
+  
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+enum RoleEnum {
+    admin
+    user
+}
+    
+model User {
+    id       String  @id @unique @default(uuid())
+    name     String? @db.VarChar(50)
+    email    String  @unique @db.VarChar(255)
+    password String
+    role     RoleEnum    @default(user)
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    tokens Token[]
+}
+
+enum TokenEnum {
+    refresh_token
+    reset_password_token
+    verify_email_token
+}
+
+model Token {
+    id        String    @id @unique @default(uuid())
+    value     String
+    type      TokenEnum
+    userId    String
+    user      User      @relation(fields: [userId], references: [id])
+    
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+
+    @@index([userId])
+}
