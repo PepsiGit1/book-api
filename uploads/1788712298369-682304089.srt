@@ -1,0 +1,28 @@
+1
+00:00:02,174 --> 00:00:03,776
+This is a LibriVox recording.
+
+2
+00:00:04,157 --> 00:00:06,760
+All LibriVox recordings are in the public domain.
+
+3
+00:00:07,161 --> 00:00:10,845
+For more information or to volunteer, please visit LibriVox.org.
+
+4
+00:00:17,337 --> 00:00:27,680
+A hungry fox saw some fine bunches of grapes hanging from a vine that was trained along a high trellis, and did his best to reach them by jumping as high as he could into the air.
+
+5
+00:00:28,341 --> 00:00:31,342
+But it was all in vain, for they were just out of reach.
+
+6
+00:00:32,022 --> 00:00:41,325
+So he gave up trying, and walked away with an air of dignity and unconcern, remarking, I thought those grapes were ripe, but I see now they are quite sour.
+
+7
+00:00:43,245 --> 00:00:44,686
+End of Fox and the Grapes
+

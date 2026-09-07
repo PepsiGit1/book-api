@@ -8,19 +8,25 @@ export const getAllBook = async (
     next: NextFunction,
 ) => {
     try {
-        const { data, meta } = await paginate(prisma.book, req, {
+        const books = await prisma.book.findMany({
             include: {
                 category: true,
+
+                chapters: {
+                    orderBy: {
+                        chapterNo: "asc",
+                    },
+                },
             },
+
             orderBy: {
                 createdAt: "desc",
             },
         });
- 
+
         return res.status(200).json({
             success: true,
-            data,
-            meta,
+            data: books,
         });
     } catch (error) {
         next(error);
@@ -33,14 +39,28 @@ export const getBookById = async (
     next: NextFunction,
 ) => {
     try {
-        const { id } = req.params;
+        const id = Number(req.params.id);
+
+        if (Number.isNaN(id)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid book ID",
+            });
+        }
 
         const book = await prisma.book.findUnique({
             where: {
-                id: Number(id),
+                id,
             },
+
             include: {
                 category: true,
+
+                chapters: {
+                    orderBy: {
+                        chapterNo: "asc",
+                    },
+                },
             },
         });
 
@@ -74,48 +94,163 @@ export const createBook = async (
             categoryId,
             isPremium,
             price,
-            audioUrl,
-            subtitleUrl,
+            chapters,
         } = req.body ?? {};
 
         if (!title || !productId || !categoryId) {
             return res.status(400).json({
                 success: false,
-                message: "title, productId and categoryId are required",
+                message:
+                    "title, productId and categoryId are required",
             });
         }
 
-        const coverImageUrl = req.file
-            ? `/uploads/${req.file.filename}`
-            : null;
+        const files = req.files as
+            | {
+                [fieldname: string]:
+                Express.Multer.File[];
+            }
+            | undefined;
+
+        const coverImageFile =
+            files?.coverImage?.[0];
+
+        const audioFiles =
+            files?.audioFiles ?? [];
+
+        const subtitleFiles =
+            files?.subtitleFiles ?? [];
+
+        const coverImageUrl =
+            coverImageFile
+                ? `/uploads/${coverImageFile.filename}`
+                : null;
+
+        let chapterData: {
+            chapterNo: number;
+            title: string;
+        }[] = [];
+
+        if (chapters) {
+            try {
+                chapterData =
+                    typeof chapters === "string"
+                        ? JSON.parse(chapters)
+                        : chapters;
+            } catch {
+                return res.status(400).json({
+                    success: false,
+                    message:
+                        "chapters must be valid JSON",
+                });
+            }
+        }
+
+        if (
+            chapterData.length !==
+            audioFiles.length
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Number of chapters must match number of audio files",
+            });
+        }
+
+        if (
+            chapterData.length !==
+            subtitleFiles.length
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Number of chapters must match number of subtitle files",
+            });
+        }
 
         const book = await prisma.book.create({
             data: {
                 title,
                 author,
+
                 productId,
+
                 coverImageUrl,
-                rating: rating ? Number(rating) : null,
+
+                rating:
+                    rating !== undefined
+                        ? Number(rating)
+                        : null,
+
                 categoryId: Number(categoryId),
-                isPremium: isPremium === "true",
-                price: Number(price ?? 0),
-                audioUrl: audioUrl ?? "",
-                subtitleUrl: subtitleUrl ?? "",
+
+                isPremium:
+                    isPremium === true ||
+                    isPremium === "true",
+
+                price:
+                    price !== undefined
+                        ? Number(price)
+                        : 0,
+
+                chapters: {
+                    create: chapterData.map(
+                        (chapter, index) => {
+                            const audioFile =
+                                audioFiles[index];
+
+                            const subtitleFile =
+                                subtitleFiles[index];
+
+                            if (
+                                !audioFile ||
+                                !subtitleFile
+                            ) {
+                                throw new Error(
+                                    `Missing files for chapter ${chapter.chapterNo}`,
+                                );
+                            }
+
+                            return {
+                                chapterNo:
+                                    Number(
+                                        chapter.chapterNo,
+                                    ),
+
+                                title: chapter.title,
+
+                                audioUrl:
+                                    `/uploads/${audioFile.filename}`,
+
+                                subtitleUrl:
+                                    `/uploads/${subtitleFile.filename}`,
+                            };
+                        },
+                    ),
+                },
             },
+
             include: {
                 category: true,
+
+                chapters: {
+                    orderBy: {
+                        chapterNo: "asc",
+                    },
+                },
             },
         });
 
         return res.status(201).json({
             success: true,
-            message: "Book created successfully",
+            message:
+                "Book created successfully",
             data: book,
         });
     } catch (error) {
         next(error);
     }
-};
+}
 
 export const updateBook = async (
     req: Request,

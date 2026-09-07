@@ -1,95 +1,97 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-}
-
-enum RoleEnum {
-    admin
-    user
-}
-
-enum TokenEnum {
-    refresh_token
-    reset_password_token
-    verify_email_token
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id        String     @id @default(uuid())
-    name      String?    @db.VarChar(50)
-    email     String     @unique @db.VarChar(255)
-    password  String
-    role      RoleEnum   @default(user)
-
-    createdAt DateTime   @default(now())
-    updatedAt DateTime   @updatedAt
-
-    tokens    Token[]
-    books     UserBook[]
+  id        String     @id @default(uuid())
+  name      String?    @db.VarChar(50)
+  email     String     @unique @db.VarChar(255)
+  password  String
+  role      RoleEnum   @default(user)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  tokens    Token[]
+  books     UserBook[]
 }
 
 model Token {
-    id        String    @id @default(uuid())
-    value     String
-    type      TokenEnum
-    userId    String
+  id        String    @id @default(uuid())
+  value     String
+  type      TokenEnum
+  userId    String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id])
 
-    user      User      @relation(fields: [userId], references: [id])
-
-    createdAt DateTime  @default(now())
-    updatedAt DateTime  @updatedAt
-
-    @@index([userId])
+  @@index([userId])
 }
 
 model Category {
-    id        Int      @id @default(autoincrement())
-    name      String   @unique @db.VarChar(100)
-
-    books     Book[]
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(100)
+  books Book[]
 }
 
 model Book {
-    id            Int       @id @default(autoincrement())
-    title         String    @db.VarChar(255)
-    author        String?   @db.VarChar(255)
-    productId     String    @unique @db.VarChar(100)
-    coverImageUrl String?
-    rating        Float?
-    categoryId    Int
+  id            Int        @id @default(autoincrement())
+  title         String     @db.VarChar(255)
+  author        String?    @db.VarChar(255)
+  productId     String     @unique @db.VarChar(100)
+  coverImageUrl String?
+  rating        Float?
+  categoryId    Int
+  isPremium     Boolean    @default(false)
+  price         Float      @default(0.0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  category      Category   @relation(fields: [categoryId], references: [id])
+  chapters      Chapter[]
+  users         UserBook[]
 
-    isPremium     Boolean   @default(false)
-    price         Float     @default(0.0)
-
-    audioUrl      String    @default("")
-    subtitleUrl   String    @default("")
-
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
-
-    category      Category  @relation(fields: [categoryId], references: [id])
-    users         UserBook[]
-
-    @@index([categoryId])
+  @@index([categoryId])
 }
 
 model UserBook {
-    userId        String
-    bookId        Int
+  userId    String
+  bookId    Int
+  isSaved   Boolean  @default(false)
+  progress  Float    @default(0.0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  book      Book     @relation(fields: [bookId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
-    isSaved       Boolean   @default(false)
-    progress      Float     @default(0.0)
+  @@id([userId, bookId])
+  @@index([bookId])
+}
 
-    createdAt     DateTime  @default(now())
-    updatedAt     DateTime  @updatedAt
+model Chapter {
+  id          Int      @id @default(autoincrement())
+  bookId      Int
+  chapterNo   Int
+  title       String   @db.VarChar(255)
+  audioUrl    String
+  subtitleUrl String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
 
-    user          User      @relation(fields: [userId], references: [id])
-    book          Book      @relation(fields: [bookId], references: [id])
+  @@unique([bookId, chapterNo])
+  @@index([bookId])
+}
 
-    @@id([userId, bookId])
-    @@index([bookId])
+enum RoleEnum {
+  admin
+  user
+}
+
+enum TokenEnum {
+  refresh_token
+  reset_password_token
+  verify_email_token
 }
