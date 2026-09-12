@@ -8,15 +8,16 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(uuid())
-  name      String?    @db.VarChar(50)
-  email     String     @unique @db.VarChar(255)
-  password  String
-  role      RoleEnum   @default(user)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  tokens    Token[]
-  books     UserBook[]
+  id           String     @id @default(uuid())
+  name         String?    @db.VarChar(50)
+  email        String     @unique @db.VarChar(255)
+  password     String
+  role         RoleEnum   @default(user)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  imageProfile String?
+  tokens       Token[]
+  books        UserBook[]
 }
 
 model Token {

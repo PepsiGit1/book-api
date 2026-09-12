@@ -2,10 +2,17 @@ import express from "express"
 const router = express.Router();
 
 // import controllers and middlewares
-import * as userControllers from "../controllers/user-controller.js";
+import { authMiddleware } from "../middlewares/auth-middleware.js";
+import { getMe, updateMe } from "../controllers/user-controller.js";
+import { uploadProfile } from "../middlewares/upload-image-middleware.js";
 
-// define routes
-router.route('/users').get(userControllers.getUsers);
+router.get("/me", authMiddleware, getMe);
+router.put(
+    "/me",
+    authMiddleware,
+    uploadProfile.single("profile"),
+    updateMe,
+);
 
 // export router
 export default router;

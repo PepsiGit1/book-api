@@ -4,6 +4,7 @@ import healthRouter from "./routes/health-routes.js";
 import authRouter from "./routes/auth-routes.js";
 import bookRouter from "./routes/book-routes.js";
 import categoryRouter from "./routes/category-routes.js";
+import paymentRouter from "./routes/payment-routes.js";
 
 const router: Router = Router();
 
@@ -14,6 +15,7 @@ v1Routes.use("/user", userRouter);
 v1Routes.use("/auth", authRouter);
 v1Routes.use("/book", bookRouter);
 v1Routes.use("/category", categoryRouter);
+v1Routes.use("/payment", paymentRouter);
 
 // attach v1 routes
 router.use("/api/v1", v1Routes);

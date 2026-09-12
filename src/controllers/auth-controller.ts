@@ -8,6 +8,7 @@ import prisma from "../../prisma/prisma-client.js";
 import ErrorHandler from "../utils/error-handler.js";
 import { generateAuthTokens } from "../services/auth-services.js";
 import { loginUserSchema, registerUserSchema } from "../validations/auth-validations.js";
+import { changePasswordSchema } from "../middlewares/auth-middleware.js";
 
 export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -118,7 +119,7 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
             throw new ErrorHandler(403, "Refresh token not found in cookie.");
         }
 
-        jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET!, async (err:any, decoded: any) => {
+        jwt.verify(refreshToken, env.REFRESH_TOKEN_SECRET!, async (err: any, decoded: any) => {
             if (err) {
                 throw new ErrorHandler(
                     401,
@@ -162,5 +163,104 @@ export const refreshAccessToken = async (req: Request, res: Response, next: Next
         });
     } catch (err) {
         next(err);
+    }
+};
+
+export const changePassword = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    try {
+        const userId = req.user?.id;
+
+        if (!userId) {
+            throw new ErrorHandler(
+                401,
+                "Unauthorized",
+            );
+        }
+
+        const validate =
+            changePasswordSchema.safeParse(req.body);
+
+        if (!validate.success) {
+            throw new ErrorHandler(
+                400,
+                validate.error.errors[0]?.message ??
+                "Validation error",
+            );
+        }
+
+        const {
+            currentPassword,
+            newPassword,
+        } = validate.data;
+
+        const user =
+            await prisma.user.findUnique({
+                where: {
+                    id: userId,
+                },
+                select: {
+                    id: true,
+                    password: true,
+                },
+            });
+
+        if (!user) {
+            throw new ErrorHandler(
+                404,
+                "User not found",
+            );
+        }
+
+        const isPasswordValid =
+            await bcrypt.compare(
+                currentPassword,
+                user.password,
+            );
+
+        if (!isPasswordValid) {
+            throw new ErrorHandler(
+                400,
+                "Current password is incorrect.",
+            );
+        }
+
+        const isSamePassword =
+            await bcrypt.compare(
+                newPassword,
+                user.password,
+            );
+
+        if (isSamePassword) {
+            throw new ErrorHandler(
+                400,
+                "New password must be different from current password.",
+            );
+        }
+
+        const hashedPassword =
+            await bcrypt.hash(
+                newPassword,
+                10,
+            );
+
+        await prisma.user.update({
+            where: {
+                id: userId,
+            },
+            data: {
+                password: hashedPassword,
+            },
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Password changed successfully.",
+        });
+    } catch (error) {
+        next(error);
     }
 };
