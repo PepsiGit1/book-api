@@ -1,10 +1,21 @@
 import { Router } from 'express';
-import { generateBcelQr, generateJdbQr } from '../controllers/payment-controller.js';
+import {
+    generateBcelQr,
+    generateJdbQr,
+    getMyTransactions,
+    getPaymentHistory,
+    getTransactionsByUserId,
+} from '../controllers/payment-controller.js';
+import { authMiddleware } from '../middlewares/auth-middleware.js';
 
 const router = Router();
 
-router.post('/bcel', generateBcelQr);
+router.post('/bcel', authMiddleware, generateBcelQr);
+router.post('/jdb', authMiddleware, generateJdbQr);
 
-router.post("/jdb", generateJdbQr,);
+// Specific/static paths first
+router.get('/history', getPaymentHistory);
+router.get('/me', authMiddleware, getMyTransactions);
+router.get('/history/:userId', getTransactionsByUserId);
 
 export default router;

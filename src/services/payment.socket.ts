@@ -1,5 +1,6 @@
 import { io } from 'socket.io-client';
 import type { Server } from 'socket.io';
+import prisma from '../../prisma/prisma-client.js';
 
 let flutterIo: Server | null = null;
 
@@ -59,6 +60,32 @@ export const onSubscribePaymentSupport = () => {
                     '❌ Missing transactionId from Phajay callback',
                 );
                 return;
+            }
+
+            // THIS WAS MISSING — save the final status to DB.
+            // Note: data.userId here is Phajay's own internal id, NOT our
+            // User.id, so it is intentionally NOT written to our userId column.
+            try {
+                await prisma.payment.upsert({
+                    where: { transactionId },
+                    update: {
+                        status: status ?? 'unknown',
+                        message: data?.message?.toString() ?? '',
+                        paymentMethod: data?.paymentMethod?.toString() ?? undefined,
+                        amount: data?.txnAmount ? Number(data.txnAmount) : undefined,
+                    },
+                    create: {
+                        transactionId,
+                        status: status ?? 'unknown',
+                        message: data?.message?.toString() ?? '',
+                        paymentMethod: data?.paymentMethod?.toString() ?? '',
+                        amount: data?.txnAmount ? Number(data.txnAmount) : undefined,
+                    },
+                });
+
+                console.log(`💾 Saved payment status for ${transactionId}: ${status}`);
+            } catch (dbError) {
+                console.error('❌ Failed to save payment status to DB:', dbError);
             }
 
             const room = `payment:${transactionId}`;

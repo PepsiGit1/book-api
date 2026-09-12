@@ -16,6 +16,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
   imageProfile String?
+  Payment      Payment[]
   tokens       Token[]
   books        UserBook[]
 }
@@ -84,6 +85,22 @@ model Chapter {
 
   @@unique([bookId, chapterNo])
   @@index([bookId])
+}
+
+model Payment {
+  transactionId String   @unique
+  status        String   @default("pending")
+  message       String?
+  paymentMethod String?
+  amount        Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String?
+  id            Int      @id @default(autoincrement())
+  User          User?    @relation(fields: [userId], references: [id])
+
+  @@index([transactionId])
+  @@index([userId])
 }
 
 enum RoleEnum {

@@ -5,30 +5,27 @@ import path from "node:path";
 import { Server } from "socket.io";
 
 import logger from "./config/logger.js";
-
 import {
     setPaymentSocketServer,
     onSubscribePaymentSupport,
 } from "./services/payment.socket.js";
 
-import {
-    setupPaymentSocket,
-} from "./services/payment.flutter.socket.js";
-
-// Load env variables
 dotenv.config({
-    path: path.resolve(
-        process.cwd(),
-        ".env",
-    ),
+    path: path.resolve(process.cwd(), ".env"),
 });
 
-// Create HTTP server
-const PORT = process.env.PORT || 8000;
+const PORT = Number(process.env.PORT) || 8000;
 
 const server = http.createServer(app);
 
-// Create Socket.IO server
+server.on("request", (req, res) => {
+    console.log(
+        "🌐 HTTP REQUEST:",
+        req.method,
+        req.url,
+    );
+});
+
 const io = new Server(server, {
     cors: {
         origin: "*",
@@ -36,44 +33,60 @@ const io = new Server(server, {
     },
 });
 
-// Flutter → Node payment socket
-setupPaymentSocket(io);
-
-// Make Socket.IO available to Phajay callback
 setPaymentSocketServer(io);
 
-// Node → Phajay payment socket
+// This actually opens the connection to Phajay and starts listening
+// for their callback event. Without calling this, the app only ever
+// sets up the Flutter-facing socket server and never talks to Phajay.
 onSubscribePaymentSupport();
 
-const startServer = async () => {
-    server.listen(PORT, () => {
-        console.log(`🚀 HTTP Server running on port ${PORT}`);
-        logger.info(`🚀 HTTP Server running on port ${PORT}`);
+io.on("connection", (socket) => {
+    console.log(
+        "📱 Flutter connected:",
+        socket.id,
+    );
+
+    socket.on("payment:subscribe", (data) => {
+        const transactionId =
+            data?.transactionId?.toString();
+
+        if (!transactionId) {
+            console.log(
+                "❌ Missing transactionId",
+            );
+            return;
+        }
+
+        const room =
+            `payment:${transactionId}`;
+
+        socket.join(room);
+
+        console.log(
+            "📱 Flutter joined room:",
+            room,
+        );
     });
-};
 
-// Handle graceful shutdown
-const shutdown = () => {
-    io.close();
+    socket.on("disconnect", (reason) => {
+        console.log(
+            "📱 Flutter disconnected:",
+            socket.id,
+            reason,
+        );
+    });
+});
 
-    server.close(() => {
-        logger.info(
-            "Shutting down server...",
+server.listen(
+    PORT,
+    "0.0.0.0",
+    () => {
+        console.log(
+            `🚀 HTTP Server running on port ${PORT}`,
         );
 
-        process.exit(0);
-    });
-};
-
-process.on(
-    "SIGTERM",
-    shutdown,
+        logger.info(
+            `🚀 HTTP Server running on port ${PORT}`,
+        );
+    },
 );
-
-process.on(
-    "SIGINT",
-    shutdown,
-);
-
-// Start server
-startServer();
